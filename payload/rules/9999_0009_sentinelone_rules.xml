@@ -1,0 +1,123 @@
+<!--
+  9999_0009_sentinelone_rules.xml
+  SentinelOne threats and console/agent activity, collected by the API poller
+  (sentinelone_pull.py). Rule IDs 100600-100620.
+
+  Every event is one JSON object:
+    {"integration":"sentinelone","s1_type":"threat|activity|collector_error","s1":{...}}
+  so the stock JSON decoder handles it and rule fields are s1.<API field>.
+
+  The 9999_ prefix matters: Wazuh loads ALL rule files (stock and custom) in
+  alphabetical order of file name, and a rule can only refer to rules or groups
+  loaded before it.
+-->
+<group name="sentinelone,edr,">
+
+  <rule id="100600" level="0">
+    <decoded_as>json</decoded_as>
+    <field name="integration">^sentinelone$</field>
+    <description>SentinelOne: grouping rule</description>
+  </rule>
+
+  <!-- ============================ Threats ============================ -->
+  <rule id="100601" level="5">
+    <if_sid>100600</if_sid>
+    <field name="s1_type">^threat$</field>
+    <description>SentinelOne threat: $(s1.threatInfo.threatName) on $(s1.agentRealtimeInfo.agentComputerName) [$(s1.threatInfo.mitigationStatus)]</description>
+    <group>sentinelone_threat,</group>
+  </rule>
+
+  <!-- Open (not yet resolved) threats. 100602-100606 are mutually exclusive. -->
+  <rule id="100602" level="12">
+    <if_sid>100601</if_sid>
+    <field name="s1.threatInfo.confidenceLevel">^malicious$</field>
+    <field name="s1.threatInfo.mitigationStatus" type="pcre2">^(active|not_mitigated|pending)$</field>
+    <field name="s1.threatInfo.incidentStatus" type="pcre2">^(?!resolved$).+</field>
+    <description>SentinelOne: ACTIVE malicious threat NOT mitigated - $(s1.threatInfo.threatName) on $(s1.agentRealtimeInfo.agentComputerName) [$(s1.threatInfo.filePath)]</description>
+    <group>sentinelone_threat,incident,</group>
+    <mitre><id>T1204</id></mitre>
+  </rule>
+
+  <rule id="100603" level="10">
+    <if_sid>100601</if_sid>
+    <field name="s1.threatInfo.confidenceLevel">^malicious$</field>
+    <field name="s1.threatInfo.mitigationStatus" type="pcre2">^(?!(active|not_mitigated|pending)$).+</field>
+    <field name="s1.threatInfo.incidentStatus" type="pcre2">^(?!resolved$).+</field>
+    <description>SentinelOne: malicious threat $(s1.threatInfo.mitigationStatus), awaiting review - $(s1.threatInfo.threatName) on $(s1.agentRealtimeInfo.agentComputerName) [$(s1.threatInfo.filePath)]</description>
+    <group>sentinelone_threat,incident,</group>
+  </rule>
+
+  <rule id="100604" level="8">
+    <if_sid>100601</if_sid>
+    <field name="s1.threatInfo.confidenceLevel">^suspicious$</field>
+    <field name="s1.threatInfo.incidentStatus" type="pcre2">^(?!resolved$).+</field>
+    <description>SentinelOne: suspicious detection ($(s1.threatInfo.mitigationStatus)) - $(s1.threatInfo.threatName) on $(s1.agentRealtimeInfo.agentComputerName) [$(s1.threatInfo.filePath)]</description>
+    <group>sentinelone_threat,</group>
+  </rule>
+
+  <!-- Threats closed in the console -->
+  <rule id="100605" level="3">
+    <if_sid>100601</if_sid>
+    <field name="s1.threatInfo.incidentStatus">^resolved$</field>
+    <field name="s1.threatInfo.mitigationStatus" type="pcre2">^(?!(active|not_mitigated|pending)$).+</field>
+    <description>SentinelOne: threat resolved ($(s1.threatInfo.analystVerdict)), $(s1.threatInfo.mitigationStatus) - $(s1.threatInfo.threatName) on $(s1.agentRealtimeInfo.agentComputerName)</description>
+    <group>sentinelone_threat,</group>
+  </rule>
+
+  <rule id="100606" level="7">
+    <if_sid>100601</if_sid>
+    <field name="s1.threatInfo.incidentStatus">^resolved$</field>
+    <field name="s1.threatInfo.mitigationStatus" type="pcre2">^(active|not_mitigated|pending)$</field>
+    <description>SentinelOne: threat marked resolved ($(s1.threatInfo.analystVerdict)) but NOT mitigated, file may still be present - $(s1.threatInfo.threatName) on $(s1.agentRealtimeInfo.agentComputerName) [$(s1.threatInfo.filePath)]</description>
+    <group>sentinelone_threat,</group>
+  </rule>
+
+  <!-- ============== Activities (console and agent audit trail) ============== -->
+  <rule id="100610" level="3">
+    <if_sid>100600</if_sid>
+    <field name="s1_type">^activity$</field>
+    <description>SentinelOne activity: $(s1.primaryDescription)</description>
+    <group>sentinelone_activity,</group>
+  </rule>
+
+  <!-- 100611-100614 match on the wording of s1.primaryDescription. Check them
+       against your own console's wording and tighten as needed. -->
+  <rule id="100611" level="12">
+    <if_sid>100610</if_sid>
+    <field name="s1.primaryDescription" type="pcre2">(?i)(uninstall|decommission|anti-?tamper|tamper protection|agent .*disabled|disabled .*agent)</field>
+    <description>SentinelOne: agent protection weakened - $(s1.primaryDescription)</description>
+    <group>sentinelone_activity,defense_evasion,</group>
+    <mitre><id>T1562.001</id></mitre>
+  </rule>
+
+  <rule id="100612" level="10">
+    <if_sid>100610</if_sid>
+    <field name="s1.primaryDescription" type="pcre2">(?i)exclusion</field>
+    <description>SentinelOne: exclusion created/changed - $(s1.primaryDescription)</description>
+    <group>sentinelone_activity,defense_evasion,</group>
+    <mitre><id>T1562.001</id></mitre>
+  </rule>
+
+  <rule id="100613" level="8">
+    <if_sid>100610</if_sid>
+    <field name="s1.primaryDescription" type="pcre2">(?i)(failed to log|login failed|failed login|unauthorized)</field>
+    <description>SentinelOne: console authentication failure - $(s1.primaryDescription)</description>
+    <group>sentinelone_activity,authentication_failed,</group>
+  </rule>
+
+  <rule id="100614" level="7">
+    <if_sid>100610</if_sid>
+    <field name="s1.primaryDescription" type="pcre2">(?i)(policy|blacklist|blocklist|whitelist|allowlist).*(changed|modified|updated|deleted|removed)|(changed|modified|updated|deleted|removed).*(policy|blacklist|blocklist)</field>
+    <description>SentinelOne: policy/config change - $(s1.primaryDescription)</description>
+    <group>sentinelone_activity,config_changed,</group>
+  </rule>
+
+  <!-- ========== Collector health (alert when log collection fails) ========== -->
+  <rule id="100620" level="10">
+    <if_sid>100600</if_sid>
+    <field name="s1_type">^collector_error$</field>
+    <description>SentinelOne collector error ($(s1.source)): $(s1.error)</description>
+    <group>sentinelone_health,</group>
+  </rule>
+
+</group>

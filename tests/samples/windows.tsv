@@ -1,0 +1,36 @@
+# expected rule ID (or none) <TAB> Windows event as Wazuh decodes it. Shapes copied from real events; names invented.
+# Needs TESTSERIAL0001 and TESTSERIAL0002 on the Approved USB list. Checked by tests/run-tests.sh only.
+# 6416, USB disk whose serial is not on the list
+101500	{"win":{"system":{"providerName":"Microsoft-Windows-Security-Auditing","eventID":"6416","channel":"Security","computer":"WS-001.example.local","severityValue":"AUDIT_SUCCESS"},"eventdata":{"deviceId":"USBSTOR\\\\Disk&amp;Ven_Vendor&amp;Prod_Secure_Drive&amp;Rev_0505\\\\UNLISTED0001&amp;0","deviceDescription":"USB Mass Storage Device"}}}
+# 6416, USB disk on the Approved USB list
+101516	{"win":{"system":{"providerName":"Microsoft-Windows-Security-Auditing","eventID":"6416","channel":"Security","computer":"WS-001.example.local","severityValue":"AUDIT_SUCCESS"},"eventdata":{"deviceId":"USBSTOR\\\\Disk&amp;Ven_Vendor&amp;Prod_Secure_Drive&amp;Rev_0505\\\\TESTSERIAL0001&amp;0","deviceDescription":"USB Mass Storage Device"}}}
+# 6416, USB optical drive on the list
+101516	{"win":{"system":{"providerName":"Microsoft-Windows-Security-Auditing","eventID":"6416","channel":"Security","computer":"WS-001.example.local","severityValue":"AUDIT_SUCCESS"},"eventdata":{"deviceId":"USBSTOR\\\\CdRom&amp;Ven_VENDOR&amp;Prod_DVD+-RW_X&amp;Rev_D.05\\\\TESTSERIAL0002&amp;0","deviceDescription":"VENDOR DVD+-RW X USB Device"}}}
+# 6416, approved serial in lower case
+101516	{"win":{"system":{"providerName":"Microsoft-Windows-Security-Auditing","eventID":"6416","channel":"Security","computer":"WS-001.example.local","severityValue":"AUDIT_SUCCESS"},"eventdata":{"deviceId":"USBSTOR\\\\Disk&amp;Ven_Vendor&amp;Prod_Secure_Drive&amp;Rev_0505\\\\testserial0001&amp;0","deviceDescription":"USB Mass Storage Device"}}}
+# 6416, serial that only STARTS with an approved serial
+101500	{"win":{"system":{"providerName":"Microsoft-Windows-Security-Auditing","eventID":"6416","channel":"Security","computer":"WS-001.example.local","severityValue":"AUDIT_SUCCESS"},"eventdata":{"deviceId":"USBSTOR\\\\Disk&amp;Ven_Vendor&amp;Prod_Secure_Drive&amp;Rev_0505\\\\TESTSERIAL00011&amp;0","deviceDescription":"USB Mass Storage Device"}}}
+# 6416, approved serial appears in the vendor part, not as the serial
+101500	{"win":{"system":{"providerName":"Microsoft-Windows-Security-Auditing","eventID":"6416","channel":"Security","computer":"WS-001.example.local","severityValue":"AUDIT_SUCCESS"},"eventdata":{"deviceId":"USBSTOR\\\\Disk&amp;Ven_TESTSERIAL0001&amp;Prod_X&amp;Rev_1\\\\UNLISTED0002&amp;0","deviceDescription":"USB Mass Storage Device"}}}
+# 6416, phone or camera (MTP)
+101500	{"win":{"system":{"providerName":"Microsoft-Windows-Security-Auditing","eventID":"6416","channel":"Security","computer":"WS-001.example.local","severityValue":"AUDIT_SUCCESS"},"eventdata":{"deviceId":"SWD\\\\WPDBUSENUM\\\\_??_USBSTOR#Disk&amp;Ven_X","deviceDescription":"Phone"}}}
+# 6416, a USB keyboard (not storage)
+none	{"win":{"system":{"providerName":"Microsoft-Windows-Security-Auditing","eventID":"6416","channel":"Security","computer":"WS-001.example.local","severityValue":"AUDIT_SUCCESS"},"eventdata":{"deviceId":"USB\\\\VID_046D&amp;PID_C31C\\\\5&amp;1a2b3c","deviceDescription":"USB Input Device"}}}
+# 1006, USB disk not on the list
+101501	{"win":{"system":{"providerName":"Microsoft-Windows-Partition","eventID":"1006","channel":"Microsoft-Windows-Partition/Diagnostic","computer":"WS-001.example.local","severityValue":"INFORMATION"},"eventdata":{"busType":"7","capacity":"4004511744","manufacturer":"Vendor","model":"Secure Drive","serialNumber":"UNLISTED0001"}}}
+# 1006, USB disk on the list
+101517	{"win":{"system":{"providerName":"Microsoft-Windows-Partition","eventID":"1006","channel":"Microsoft-Windows-Partition/Diagnostic","computer":"WS-001.example.local","severityValue":"INFORMATION"},"eventdata":{"busType":"7","capacity":"4004511744","manufacturer":"Vendor","model":"Secure Drive","serialNumber":"TESTSERIAL0001"}}}
+# 1006 with capacity 0 (removal)
+none	{"win":{"system":{"providerName":"Microsoft-Windows-Partition","eventID":"1006","channel":"Microsoft-Windows-Partition/Diagnostic","computer":"WS-001.example.local","severityValue":"INFORMATION"},"eventdata":{"busType":"7","capacity":"0","manufacturer":"Vendor","model":"Secure Drive","serialNumber":"TESTSERIAL0001"}}}
+# 4663 write on removable storage
+101505	{"win":{"system":{"providerName":"Microsoft-Windows-Security-Auditing","eventID":"4663","channel":"Security","computer":"WS-001.example.local","severityValue":"AUDIT_SUCCESS","task":"12812"},"eventdata":{"subjectUserName":"jdoe","objectName":"\\\\Device\\\\HarddiskVolume7\\\\report.docx","processName":"C:\\\\Windows\\\\explorer.exe","accessList":"%%4417\n\t\t\t\t"}}}
+# 4663 append on removable storage
+101505	{"win":{"system":{"providerName":"Microsoft-Windows-Security-Auditing","eventID":"4663","channel":"Security","computer":"WS-001.example.local","severityValue":"AUDIT_SUCCESS","task":"12812"},"eventdata":{"subjectUserName":"jdoe","objectName":"\\\\Device\\\\HarddiskVolume7\\\\report.docx","processName":"C:\\\\Windows\\\\explorer.exe","accessList":"%%4418\n\t\t\t\t"}}}
+# 4663 read on removable storage
+101506	{"win":{"system":{"providerName":"Microsoft-Windows-Security-Auditing","eventID":"4663","channel":"Security","computer":"WS-001.example.local","severityValue":"AUDIT_SUCCESS","task":"12812"},"eventdata":{"subjectUserName":"jdoe","objectName":"\\\\Device\\\\HarddiskVolume7\\\\report.docx","processName":"C:\\\\Windows\\\\explorer.exe","accessList":"%%4416\n\t\t\t\t"}}}
+# 4663 write on an ordinary disk (task 12800)
+none	{"win":{"system":{"providerName":"Microsoft-Windows-Security-Auditing","eventID":"4663","channel":"Security","computer":"WS-001.example.local","severityValue":"AUDIT_SUCCESS","task":"12800"},"eventdata":{"subjectUserName":"jdoe","objectName":"\\\\Device\\\\HarddiskVolume7\\\\report.docx","processName":"C:\\\\Windows\\\\explorer.exe","accessList":"%%4417\n\t\t\t\t"}}}
+# 4656 access denied on removable storage
+101503	{"win":{"system":{"providerName":"Microsoft-Windows-Security-Auditing","eventID":"4656","channel":"Security","computer":"WS-001.example.local","severityValue":"AUDIT_FAILURE","task":"12812"},"eventdata":{"subjectUserName":"jdoe","objectName":"\\\\Device\\\\HarddiskVolume7\\\\report.docx","processName":"C:\\\\Windows\\\\explorer.exe","accessList":"%%4417\n\t\t\t\t"}}}
+# 6423 device installation blocked by policy
+101502	{"win":{"system":{"providerName":"Microsoft-Windows-Security-Auditing","eventID":"6423","channel":"Security","computer":"WS-001.example.local","severityValue":"AUDIT_SUCCESS"},"eventdata":{"deviceId":"USBSTOR\\\\Disk&amp;Ven_X","deviceDescription":"USB Mass Storage Device"}}}

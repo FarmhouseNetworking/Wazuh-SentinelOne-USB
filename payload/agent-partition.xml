@@ -1,0 +1,6 @@
+  <!-- USB disk arrival with vendor, model, serial and capacity (1006), for rule 101501 -->
+  <localfile>
+    <location>Microsoft-Windows-Partition/Diagnostic</location>
+    <log_format>eventchannel</log_format>
+    <query>Event/System[EventID = 1006]</query>
+  </localfile>

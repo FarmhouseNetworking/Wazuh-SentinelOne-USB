@@ -1,0 +1,68 @@
+<!--
+  9999_0011_sentinelone_device_control_rules.xml
+  SentinelOne Device Control: blocked devices, rule changes, and checks against
+  the Approved USB list. Rule IDs 101510-101515.
+
+  Needs both 9999_0009_sentinelone_rules.xml (rule 100610) and the CDB list
+  etc/lists/approved_usb_serials (one "serial:label" per line).
+
+  SentinelOne reports BLOCKED devices in its activity feed. It does not report
+  connections it allows; those come from the Windows events (101500, 101501).
+-->
+<group name="s1_device_control,usb,">
+
+  <!-- Any Device Control event for a device (has an interface and an event type) -->
+  <rule id="101511" level="5">
+    <if_sid>100610</if_sid>
+    <field name="s1.data.interface" type="pcre2">.+</field>
+    <field name="s1.data.eventType" type="pcre2">.+</field>
+    <description>SentinelOne Device Control: $(s1.data.interface) device $(s1.data.deviceName) $(s1.data.eventType) on $(s1.data.computerName) (user $(s1.data.lastLoggedInUserName))</description>
+    <mitre>
+      <id>T1091</id>
+    </mitre>
+    <group>usb_device_connected_s1,</group>
+  </rule>
+
+  <rule id="101510" level="10">
+    <if_sid>101511</if_sid>
+    <field name="s1.data.eventType">^blocked$</field>
+    <description>SentinelOne Device Control: $(s1.data.interface) device $(s1.data.deviceName) BLOCKED on $(s1.data.computerName) (user $(s1.data.lastLoggedInUserName), rule: $(s1.data.ruleName))</description>
+    <mitre>
+      <id>T1052.001</id>
+    </mitre>
+    <group>usb_device_blocked,</group>
+  </rule>
+
+  <!-- Approved USB list: etc/lists/approved_usb_serials -->
+  <rule id="101512" level="3">
+    <if_sid>101511</if_sid>
+    <field name="s1.data.eventType" type="pcre2">^(?!blocked$).+</field>
+    <list field="s1.data.uid" lookup="match_key">etc/lists/approved_usb_serials</list>
+    <description>SentinelOne Device Control: APPROVED device $(s1.data.deviceName) (serial $(s1.data.uid)) $(s1.data.eventType) on $(s1.data.computerName) (user $(s1.data.lastLoggedInUserName))</description>
+    <group>usb_device_approved,</group>
+  </rule>
+
+  <rule id="101513" level="8">
+    <if_sid>101510</if_sid>
+    <list field="s1.data.uid" lookup="match_key">etc/lists/approved_usb_serials</list>
+    <description>SentinelOne Device Control: APPROVED device $(s1.data.deviceName) (serial $(s1.data.uid)) was BLOCKED on $(s1.data.computerName) - check the SentinelOne allow rule and its order</description>
+    <group>usb_device_approved,usb_device_blocked,</group>
+  </rule>
+
+  <!-- Device Control rule added/changed/deleted in the SentinelOne console -->
+  <rule id="101514" level="8">
+    <if_sid>100610</if_sid>
+    <field name="s1.primaryDescription" type="pcre2">(?i)Device Control rule</field>
+    <description>SentinelOne Device Control rule change by $(s1.data.username): $(s1.data.ruleName) [$(s1.data.action) $(s1.data.ruleType) $(s1.data.uid)]</description>
+    <group>usb_policy_change,config_changed,</group>
+  </rule>
+
+  <rule id="101515" level="10">
+    <if_sid>101514</if_sid>
+    <field name="s1.data.action">^Allow$</field>
+    <list field="s1.data.uid" lookup="not_match_key">etc/lists/approved_usb_serials</list>
+    <description>SentinelOne Device Control ALLOW rule for a device NOT on the Approved USB list: $(s1.data.ruleName) [$(s1.data.ruleType) $(s1.data.uid)] by $(s1.data.username)</description>
+    <group>usb_policy_change,config_changed,usb_unapproved_allow,</group>
+  </rule>
+
+</group>
